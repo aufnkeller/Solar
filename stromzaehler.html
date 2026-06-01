@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Solarbalkon Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3348;
+    --text: #e8eaf0;
+    --muted: #6b7194;
+    --solar: #f5c842;
+    --grid: #4a9eff;
+    --save: #3ecf8e;
+    --accent: #f5c842;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 60px 0;
+  }
+
+  header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .sun-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--solar);
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 38px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: var(--solar);
+    border-bottom-color: var(--solar);
+  }
+
+  /* VIEWS */
+  .view { display: none; padding: 20px; }
+  .view.active { display: block; }
+
+  /* EINGABE */
+  .date-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .date-label { font-size: 12px; color: var(--muted); }
+  .date-value { font-size: 14px; font-weight: 500; }
+
+  .field {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .field-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-grid { background: var(--grid); }
+  .dot-solar { background: var(--solar); }
+
+  .field-label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .field-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="number"]:focus {
+    border-color: var(--solar);
+  }
+
+  input[type="number"]::placeholder {
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  /* hide spin buttons */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .btn-save {
+    width: 100%;
+    padding: 16px;
+    background: var(--solar);
+    color: #0f1117;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s;
+  }
+
+  .btn-save:active { opacity: 0.8; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--save);
+    color: #0f1117;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: transform 0.3s ease;
+    z-index: 999;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* HEUTE */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .kpi.full { grid-column: 1 / -1; }
+
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 26px;
+    font-weight: 500;
+  }
+
+  .kpi-unit {
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .color-grid { color: var(--grid); }
+  .color-solar { color: var(--solar); }
+  .color-save { color: var(--save); }
+
+  .no-data {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .no-data strong { color: var(--text); display: block; margin-bottom: 8px; font-size: 16px; }
+
+  /* VERLAUF */
+  .entry-list { }
+
+  .entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .entry-date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .entry-row {
+    display: flex;
+    gap: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+  }
+
+  .entry-item { display: flex; align-items: center; gap: 6px; }
+
+  .entry-delta {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+  }
+
+  .delta-val { font-weight: 500; }
+
+  .btn-delete {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .btn-delete:active { background: var(--surface2); }
+
+  .section-title {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* mini chart */
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 80px;
+  }
+
+  .bar-group {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 80px;
+  }
+
+  .bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height 0.3s ease;
+  }
+
+  .bar-bezug { background: var(--grid); opacity: 0.8; }
+  .bar-einsp { background: var(--solar); opacity: 0.8; }
+
+  .bar-labels {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .bar-label {
+    flex: 1;
+    text-align: center;
+    font-size: 9px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  .empty-chart {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .hint-box {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .hint-box strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    </svg>
+    <h1>Solarbalkon Tracker</h1>
+  </div>
+  <div class="subtitle">Anker Solix E1600 · 2× 450W Bifazial</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('eingabe')">Ablesen</div>
+  <div class="tab" onclick="showTab('heute')">Auswertung</div>
+  <div class="tab" onclick="showTab('verlauf')">Verlauf</div>
+</div>
+
+<!-- EINGABE -->
+<div class="view active" id="view-eingabe">
+  <div class="date-display">
+    <span class="date-label">Datum</span>
+    <span class="date-value" id="today-date"></span>
+  </div>
+
+  <div class="field">
+    <div class="field-header">
+      <div class="dot dot-grid"></div>
+      <span class="field-label">Netzbezug</span>
+      <span class="field-desc">1.8.0</span>
+    </div>
+    <input type="number" id="input-bezug" placeholder="z.B. 1842.5" step="0.1" min="0">
+  </div>
+
+  <div class="field">
+    <div class="field-header">
+      <div class="dot dot-solar"></div>
+      <span class="field-label">Einspeisung</span>
+      <span class="field-desc">2.8.0</span>
+    </div>
+    <input type="number" id="input-einsp" placeholder="z.B. 234.8" step="0.1" min="0">
+  </div>
+
+  <button class="btn-save" onclick="saveEntry()">Speichern</button>
+
+  <div class="hint-box" style="margin-top:16px;">
+    <strong>Tipp:</strong> Jeden Tag zur gleichen Zeit ablesen — am besten morgens. So sind die Tagesdifferenzen vergleichbar.
+  </div>
+</div>
+
+<!-- AUSWERTUNG -->
+<div class="view" id="view-heute">
+  <div id="heute-content"></div>
+</div>
+
+<!-- VERLAUF -->
+<div class="view" id="view-verlauf">
+  <div id="verlauf-content"></div>
+</div>
+
+<div class="toast" id="toast">✓ Gespeichert</div>
+
+<script>
+const STORAGE_KEY = 'solar_entries_v1';
+
+function getEntries() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+}
+
+function formatShortDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+}
+
+// Set today's date in input view
+function setTodayDisplay() {
+  const now = new Date();
+  document.getElementById('today-date').textContent =
+    now.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['eingabe','heute','verlauf'][i] === tab);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  if (tab === 'heute') renderHoete();
+  if (tab === 'verlauf') renderVerlauf();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function saveEntry() {
+  const bezug = parseFloat(document.getElementById('input-bezug').value);
+  const einsp = parseFloat(document.getElementById('input-einsp').value);
+
+  if (isNaN(bezug) || isNaN(einsp)) {
+    showToast('⚠ Beide Werte eingeben');
+    return;
+  }
+
+  const entries = getEntries();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Check if today already exists
+  const existingIdx = entries.findIndex(e => e.date === today);
+  const entry = { date: today, bezug, einsp };
+
+  if (existingIdx >= 0) {
+    entries[existingIdx] = entry;
+    showToast('✓ Eintrag aktualisiert');
+  } else {
+    entries.push(entry);
+    showToast('✓ Gespeichert');
+  }
+
+  entries.sort((a, b) => a.date.localeCompare(b.date));
+  saveEntries(entries);
+
+  document.getElementById('input-bezug').value = '';
+  document.getElementById('input-einsp').value = '';
+}
+
+function renderHoete() {
+  const entries = getEntries();
+  const el = document.getElementById('heute-content');
+
+  if (entries.length < 2) {
+    el.innerHTML = `<div class="no-data">
+      <strong>Noch zu wenig Daten</strong>
+      Trage mindestens zwei Tage ein,<br>um eine Auswertung zu sehen.
+    </div>`;
+    return;
+  }
+
+  const last = entries[entries.length - 1];
+  const prev = entries[entries.length - 2];
+
+  const daysBetween = Math.max(1, (new Date(last.date) - new Date(prev.date)) / 86400000);
+  const deltaBezug = Math.max(0, last.bezug - prev.bezug);
+  const deltaEinsp = Math.max(0, last.einsp - prev.einsp);
+
+  // Rough estimate: eingespeist + weniger bezogen ≈ solar benefit
+  // We can't know total production, but we can show the delta trend
+  const perDay = (v) => (v / daysBetween).toFixed(2);
+
+  // 7-day average if we have enough data
+  let avg7bezug = null, avg7einsp = null;
+  if (entries.length >= 7) {
+    const slice = entries.slice(-7);
+    const d = (new Date(slice[slice.length-1].date) - new Date(slice[0].date)) / 86400000 || 1;
+    avg7bezug = ((slice[slice.length-1].bezug - slice[0].bezug) / d).toFixed(2);
+    avg7einsp = ((slice[slice.length-1].einsp - slice[0].einsp) / d).toFixed(2);
+  }
+
+  // Rough savings estimate at 0.30 €/kWh
+  const savedEur = (deltaEinsp * 0.30).toFixed(2);
+
+  el.innerHTML = `
+    <p class="section-title">Letzte Ablesung: ${formatDate(last.date)}</p>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Netzbezug heute</div>
+        <div class="kpi-value color-grid">${deltaBezug.toFixed(2)}<span class="kpi-unit">kWh</span></div>
+        <div class="kpi-sub">seit ${formatDate(prev.date)}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Einspeisung heute</div>
+        <div class="kpi-value color-solar">${deltaEinsp.toFixed(2)}<span class="kpi-unit">kWh</span></div>
+        <div class="kpi-sub">ins Netz abgegeben</div>
+      </div>
+      <div class="kpi full">
+        <div class="kpi-label">Grobe Einspeisevergütung</div>
+        <div class="kpi-value color-save">~${savedEur}<span class="kpi-unit">€</span></div>
+        <div class="kpi-sub">Schätzung bei 8,2 ct/kWh (EEG 2024) · Eigenverbrauch nicht berechnet</div>
+      </div>
+    </div>
+
+    ${avg7bezug !== null ? `
+    <p class="section-title">Ø letzte 7 Tage</p>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Ø Netzbezug/Tag</div>
+        <div class="kpi-value color-grid" style="font-size:20px">${avg7bezug}<span class="kpi-unit">kWh</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ø Einspeisung/Tag</div>
+        <div class="kpi-value color-solar" style="font-size:20px">${avg7einsp}<span class="kpi-unit">kWh</span></div>
+      </div>
+    </div>` : ''}
+
+    <div class="hint-box">
+      <strong>Was bedeutet das?</strong> Wenn dein Netzbezug im Sommer deutlich niedriger ist als im Winter, arbeitet deine Anlage gut. Die Einspeisung zeigt, was du nicht selbst verbraucht hast.
+    </div>
+  `;
+}
+
+function renderVerlauf() {
+  const entries = getEntries();
+  const el = document.getElementById('verlauf-content');
+
+  if (entries.length === 0) {
+    el.innerHTML = `<div class="no-data"><strong>Noch keine Einträge</strong>Fange mit der ersten Ablesung an.</div>`;
+    return;
+  }
+
+  // Build chart data from daily deltas
+  let chartHTML = '';
+  if (entries.length >= 2) {
+    const recent = entries.slice(-14); // last 14 entries
+    const deltas = [];
+    for (let i = 1; i < recent.length; i++) {
+      deltas.push({
+        label: formatShortDate(recent[i].date),
+        bezug: Math.max(0, recent[i].bezug - recent[i-1].bezug),
+        einsp: Math.max(0, recent[i].einsp - recent[i-1].einsp),
+      });
+    }
+
+    const maxVal = Math.max(...deltas.map(d => Math.max(d.bezug, d.einsp)), 0.1);
+
+    const barsHTML = deltas.map(d => `
+      <div class="bar-group">
+        <div class="bar bar-bezug" style="height:${Math.round((d.bezug/maxVal)*80)}px" title="${d.bezug.toFixed(1)} kWh Bezug"></div>
+        <div class="bar bar-einsp" style="height:${Math.round((d.einsp/maxVal)*80)}px" title="${d.einsp.toFixed(1)} kWh Einsp."></div>
+      </div>
+    `).join('');
+
+    const labelsHTML = deltas.map(d => `<div class="bar-label">${d.label}</div>`).join('');
+
+    chartHTML = `
+      <div class="chart-wrap">
+        <div class="chart-title">Tageswerte (kWh)</div>
+        <div class="bars">${barsHTML}</div>
+        <div class="bar-labels">${labelsHTML}</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--grid)"></div>Bezug</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--solar)"></div>Einspeisung</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Entry list (newest first)
+  const sorted = [...entries].reverse();
+  const listHTML = sorted.map((e, i) => {
+    const origIdx = entries.indexOf(e);
+    const prev = entries[origIdx - 1];
+    let deltaHTML = '';
+    if (prev) {
+      const db = Math.max(0, e.bezug - prev.bezug).toFixed(2);
+      const de = Math.max(0, e.einsp - prev.einsp).toFixed(2);
+      deltaHTML = `<div class="entry-delta">
+        <span>▲ <span class="delta-val color-grid">${db}</span> kWh Bezug</span>
+        <span>▲ <span class="delta-val color-solar">${de}</span> kWh Einsp.</span>
+      </div>`;
+    }
+    return `
+      <div class="entry">
+        <div class="entry-date">${formatDate(e.date)}</div>
+        <div class="entry-row">
+          <div class="entry-item"><div class="dot dot-grid" style="width:6px;height:6px"></div>${e.bezug.toFixed(1)} kWh</div>
+          <div class="entry-item"><div class="dot dot-solar" style="width:6px;height:6px"></div>${e.einsp.toFixed(1)} kWh</div>
+        </div>
+        ${deltaHTML}
+        <button class="btn-delete" onclick="deleteEntry('${e.date}')">×</button>
+      </div>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    ${chartHTML}
+    <p class="section-title">${entries.length} Einträge</p>
+    <div class="entry-list">${listHTML}</div>
+  `;
+}
+
+function deleteEntry(date) {
+  if (!confirm(`Eintrag vom ${formatDate(date)} löschen?`)) return;
+  const entries = getEntries().filter(e => e.date !== date);
+  saveEntries(entries);
+  renderVerlauf();
+}
+
+setTodayDisplay();
+</script>
+</body>
+</html>
