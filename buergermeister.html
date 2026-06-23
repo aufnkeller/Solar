@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Solarbalkon – Jahresbericht</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3348;
+    --text: #e8eaf0;
+    --muted: #6b7194;
+    --solar: #f5c842;
+    --grid: #4a9eff;
+    --save: #3ecf8e;
+    --red: #ff6b6b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 60px 0;
+  }
+
+  header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .header-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--solar);
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 38px;
+  }
+
+  .year-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .year-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .year-btn:hover { border-color: var(--solar); }
+
+  .year-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--solar);
+    flex: 1;
+    text-align: center;
+  }
+
+  .content { padding: 20px; }
+
+  .section-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .kpi.full { grid-column: 1 / -1; }
+
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 26px;
+    font-weight: 500;
+  }
+
+  .kpi-value.sm { font-size: 20px; }
+
+  .kpi-unit {
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .color-grid { color: var(--grid); }
+  .color-solar { color: var(--solar); }
+  .color-save { color: var(--save); }
+  .color-red { color: var(--red); }
+
+  /* Monatschart */
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .month-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 100px;
+  }
+
+  .month-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .month-bar-group {
+    width: 100%;
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+  }
+
+  .mbar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height 0.4s ease;
+  }
+
+  .mbar-bezug { background: var(--grid); opacity: 0.8; }
+  .mbar-einsp { background: var(--solar); opacity: 0.8; }
+
+  .month-label {
+    font-size: 8px;
+    color: var(--muted);
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  /* Monatstabelle */
+  .month-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .mt-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr 1fr;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    align-items: center;
+  }
+
+  .mt-row:last-child { border-bottom: none; }
+
+  .mt-head {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--surface2);
+  }
+
+  .mt-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    text-align: right;
+  }
+
+  /* Anlagen-Info */
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--muted); }
+  .info-val { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  /* No Data */
+  .no-data {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 2;
+  }
+
+  .no-data strong { color: var(--text); display: block; margin-bottom: 8px; font-size: 16px; }
+  .no-data a { color: var(--solar); text-decoration: none; }
+
+  /* Print-Button */
+  .btn-print {
+    width: 100%;
+    padding: 14px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: border-color 0.2s, color 0.2s;
+    margin-bottom: 20px;
+  }
+
+  .btn-print:hover { border-color: var(--solar); color: var(--solar); }
+
+  /* Highlight-Monat */
+  .best-month {
+    font-size: 11px;
+    background: rgba(245, 200, 66, 0.1);
+    border: 1px solid rgba(245, 200, 66, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--solar);
+    margin-left: 6px;
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    .year-selector, .btn-print { display: none; }
+    .surface, .surface2 { background: #f9f9f9 !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+    </svg>
+    <h1>Jahresbericht · Solarbalkon</h1>
+  </div>
+  <div class="subtitle">Anker Solix E1600 · 2× 450W Bifazial</div>
+</header>
+
+<div class="year-selector">
+  <button class="year-btn" id="btn-prev">◀</button>
+  <div class="year-display" id="year-display">2025</div>
+  <button class="year-btn" id="btn-next">▶</button>
+</div>
+
+<div class="content" id="main-content"></div>
+
+<script>
+const STORAGE_KEY = 'solar_entries_v1';
+const MONTHS_DE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MONTHS_LONG = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+let currentYear = new Date().getFullYear();
+
+function getEntries() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function entriesForYear(entries, year) {
+  return entries.filter(e => e.date.startsWith(String(year)));
+}
+
+function getAvailableYears(entries) {
+  const years = new Set(entries.map(e => parseInt(e.date.slice(0,4))));
+  return Array.from(years).sort();
+}
+
+function monthlyDeltas(entries, year) {
+  // Get all entries covering the year (including boundary entries from adjacent months)
+  const allEntries = getEntries().sort((a,b) => a.date.localeCompare(b.date));
+  const months = {};
+
+  for (let i = 1; i < allEntries.length; i++) {
+    const curr = allEntries[i];
+    const prev = allEntries[i-1];
+    const month = curr.date.slice(0,7); // YYYY-MM
+    if (!month.startsWith(String(year))) continue;
+
+    const db = Math.max(0, curr.bezug - prev.bezug);
+    const de = Math.max(0, curr.einsp - prev.einsp);
+
+    if (!months[month]) months[month] = { bezug: 0, einsp: 0, days: 0 };
+    months[month].bezug += db;
+    months[month].einsp += de;
+    months[month].days += (new Date(curr.date) - new Date(prev.date)) / 86400000;
+  }
+
+  return months;
+}
+
+function render() {
+  document.getElementById('year-display').textContent = currentYear;
+  const entries = getEntries().sort((a,b) => a.date.localeCompare(b.date));
+  const yearEntries = entries.filter(e => e.date.startsWith(String(currentYear)));
+  const el = document.getElementById('main-content');
+
+  if (entries.length < 2) {
+    el.innerHTML = `<div class="no-data">
+      <strong>Noch keine Daten</strong>
+      Trage zunächst Ablesungen in den<br>
+      <a href="stromzaehler.html">Solarbalkon Tracker</a> ein.
+    </div>`;
+    return;
+  }
+
+  const months = monthlyDeltas(entries, currentYear);
+  const monthKeys = Object.keys(months).sort();
+
+  if (monthKeys.length === 0) {
+    el.innerHTML = `<div class="no-data">
+      <strong>Keine Daten für ${currentYear}</strong>
+      Für dieses Jahr liegen keine Ablesungen vor.
+    </div>`;
+    return;
+  }
+
+  // Jahressummen
+  let totalBezug = 0, totalEinsp = 0;
+  monthKeys.forEach(k => {
+    totalBezug += months[k].bezug;
+    totalEinsp += months[k].einsp;
+  });
+
+  // Bestes Monat (höchste Einspeisung)
+  const bestMonthKey = monthKeys.reduce((a,b) => months[a].einsp > months[b].einsp ? a : b, monthKeys[0]);
+  const bestMonthName = MONTHS_LONG[parseInt(bestMonthKey.slice(5,7)) - 1];
+
+  // Jahresanfang und Jahresende aus den Einträgen
+  const firstEntry = entries.find(e => e.date >= `${currentYear}-01-01`);
+  const lastEntry = [...entries].reverse().find(e => e.date <= `${currentYear}-12-31`);
+  const ablDays = monthKeys.reduce((s,k) => s + months[k].days, 0);
+
+  // Einsparungen: Eigenverbrauch = Einspeisung reduziert den Bezug (vereinfacht)
+  const vergEEG = (totalEinsp * 0.082).toFixed(2);         // EEG 2024: 8,2 ct
+  const savedGrid = (totalEinsp * 0.30).toFixed(2);        // Schätzung Strombezug vermieden
+
+  // Chart
+  const allVals = monthKeys.flatMap(k => [months[k].bezug, months[k].einsp]);
+  const maxVal = Math.max(...allVals, 1);
+
+  const barsHTML = Array.from({length:12}, (_,i) => {
+    const key = `${currentYear}-${String(i+1).padStart(2,'0')}`;
+    const m = months[key];
+    const bh = m ? Math.round((m.bezug / maxVal) * 100) : 0;
+    const eh = m ? Math.round((m.einsp / maxVal) * 100) : 0;
+    return `
+      <div class="month-col">
+        <div class="month-bar-group">
+          <div class="mbar mbar-bezug" style="height:${bh}px"></div>
+          <div class="mbar mbar-einsp" style="height:${eh}px"></div>
+        </div>
+        <div class="month-label">${MONTHS_DE[i]}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Monatstabelle
+  const tableRows = monthKeys.map(k => {
+    const mn = parseInt(k.slice(5,7)) - 1;
+    const isBest = k === bestMonthKey;
+    return `
+      <div class="mt-row">
+        <div>${MONTHS_DE[mn]}${isBest ? '<span class="best-month">★</span>' : ''}</div>
+        <div class="mt-val color-grid">${months[k].bezug.toFixed(1)} kWh</div>
+        <div class="mt-val color-solar">${months[k].einsp.toFixed(1)} kWh</div>
+        <div class="mt-val color-save">${(months[k].einsp * 0.082).toFixed(2)} €</div>
+      </div>
+    `;
+  }).join('');
+
+  // Anlageninfo
+  const installDate = firstEntry ? firstEntry.date : '—';
+
+  el.innerHTML = `
+    <button class="btn-print" onclick="window.print()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 6 2 18 2 18 9"/>
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+        <rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      Drucken / Als PDF speichern
+    </button>
+
+    <p class="section-title">Jahressumme ${currentYear}</p>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Netzbezug gesamt</div>
+        <div class="kpi-value color-grid">${totalBezug.toFixed(1)}<span class="kpi-unit">kWh</span></div>
+        <div class="kpi-sub">aus dem Stromnetz bezogen</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Einspeisung gesamt</div>
+        <div class="kpi-value color-solar">${totalEinsp.toFixed(1)}<span class="kpi-unit">kWh</span></div>
+        <div class="kpi-sub">ins Netz abgegeben</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Einspeisevergütung</div>
+        <div class="kpi-value color-save sm">~${vergEEG}<span class="kpi-unit">€</span></div>
+        <div class="kpi-sub">EEG 2024 · 8,2 ct/kWh</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Bestes Monat</div>
+        <div class="kpi-value color-solar sm" style="font-size:16px">${bestMonthName}</div>
+        <div class="kpi-sub">${months[bestMonthKey].einsp.toFixed(1)} kWh Einspeisung</div>
+      </div>
+      <div class="kpi full">
+        <div class="kpi-label">Ablesezeitraum</div>
+        <div class="kpi-value sm" style="font-size:15px">${monthKeys.length} Monate · ${Math.round(ablDays)} Tage</div>
+        <div class="kpi-sub">Ø ${(totalEinsp / Math.max(ablDays,1)).toFixed(2)} kWh Einspeisung/Tag</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Monatliche Werte ${currentYear} (kWh)</div>
+      <div class="month-bars">${barsHTML}</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--grid)"></div>Netzbezug</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--solar)"></div>Einspeisung</div>
+      </div>
+    </div>
+
+    <p class="section-title">Monatsdetails</p>
+
+    <div class="month-table">
+      <div class="mt-row mt-head">
+        <div>Monat</div>
+        <div style="text-align:right">Bezug</div>
+        <div style="text-align:right">Einsp.</div>
+        <div style="text-align:right">Vergütung</div>
+      </div>
+      ${tableRows}
+      <div class="mt-row" style="background:var(--surface2)">
+        <div style="font-weight:600;font-size:12px">Gesamt</div>
+        <div class="mt-val color-grid" style="font-weight:600">${totalBezug.toFixed(1)} kWh</div>
+        <div class="mt-val color-solar" style="font-weight:600">${totalEinsp.toFixed(1)} kWh</div>
+        <div class="mt-val color-save" style="font-weight:600">${vergEEG} €</div>
+      </div>
+    </div>
+
+    <p class="section-title">Anlageninformationen</p>
+
+    <div class="info-card">
+      <div class="info-row">
+        <span class="info-key">Anlage</span>
+        <span class="info-val">Anker Solix E1600</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Module</span>
+        <span class="info-val">2× 450W Bifazial</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Nennleistung</span>
+        <span class="info-val">900 Wp</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Typ</span>
+        <span class="info-val">Balkonkraftwerk (§ 8 EEG)</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Erste Ablesung</span>
+        <span class="info-val">${installDate}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Zähler 1.8.0</span>
+        <span class="info-val">Netzbezug</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Zähler 2.8.0</span>
+        <span class="info-val">Einspeisung</span>
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById('btn-prev').onclick = () => { currentYear--; render(); };
+document.getElementById('btn-next').onclick = () => { currentYear++; render(); };
+
+// Setze auf letztes Jahr mit Daten
+const entries = getEntries();
+const years = Array.from(new Set(entries.map(e => parseInt(e.date.slice(0,4))))).sort();
+if (years.length > 0) currentYear = years[years.length - 1];
+
+render();
+</script>
+</body>
+</html>
